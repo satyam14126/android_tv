@@ -1,0 +1,38 @@
+[
+  {
+    "title": "YouTube TV",
+    "url": "https://www.youtube.com/tv",
+    "icon": "youtube",
+    "category": "Streaming"
+  },
+  {
+    "title": "Reddit",
+    "url": "https://www.reddit.com",
+    "icon": "reddit",
+    "category": "Social"
+  },
+  {
+    "title": "Twitch",
+    "url": "https://m.twitch.tv",
+    "icon": "twitch",
+    "category": "Streaming"
+  },
+  {
+    "title": "Wikipedia",
+    "url": "https://en.m.wikipedia.org",
+    "icon": "wikipedia",
+    "category": "Knowledge"
+  },
+  {
+    "title": "BBC News",
+    "url": "https://www.bbc.com/news",
+    "icon": "news",
+    "category": "News"
+  },
+  {
+    "title": "GitHub",
+    "url": "https://github.com",
+    "icon": "github",
+    "category": "Dev"
+  }
+]

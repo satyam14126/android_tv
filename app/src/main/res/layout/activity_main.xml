@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark">
+
+    <!-- Top Navigation Bar (TV 10-Foot Bar) -->
+    <LinearLayout
+        android:id="@+id/top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_alignParentTop="true"
+        android:background="@color/bg_topbar"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:elevation="8dp">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            style="@style/TVButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="Back"
+            android:src="@android:drawable/ic_media_previous" />
+
+        <ImageButton
+            android:id="@+id/btn_forward"
+            style="@style/TVButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="Forward"
+            android:src="@android:drawable/ic_media_next" />
+
+        <ImageButton
+            android:id="@+id/btn_refresh"
+            style="@style/TVButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="Refresh"
+            android:src="@android:drawable/ic_menu_rotate" />
+
+        <!-- URL Input Field -->
+        <EditText
+            android:id="@+id/et_url"
+            style="@style/TVButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_tv_button"
+            android:hint="@string/url_placeholder"
+            android:imeOptions="actionGo"
+            android:inputType="textUri"
+            android:paddingHorizontal="16dp"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"
+            android:textSize="16sp" />
+
+        <!-- Brave Shield Status Badge -->
+        <LinearLayout
+            android:id="@+id/btn_shield_toggle"
+            style="@style/TVButton"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp">
+
+            <ImageView
+                android:id="@+id/iv_shield_icon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_secure"
+                app:tint="@color/shield_green" />
+
+            <TextView
+                android:id="@+id/tv_shield_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="0 Blocked"
+                android:textColor="@color/shield_green"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Mode Toggle (Pointer vs Focus) -->
+        <ImageButton
+            android:id="@+id/btn_mode_toggle"
+            style="@style/TVButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="Toggle Pointer Mode"
+            android:src="@android:drawable/ic_menu_compass" />
+
+        <!-- Cache Manager Button -->
+        <ImageButton
+            android:id="@+id/btn_cache"
+            style="@style/TVButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="Cache Manager"
+            android:src="@android:drawable/ic_menu_delete" />
+
+        <!-- Credential Vault Button -->
+        <ImageButton
+            android:id="@+id/btn_vault"
+            style="@style/TVButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="Password Vault"
+            android:src="@android:drawable/ic_lock_lock" />
+
+    </LinearLayout>
+
+    <!-- Main Content Frame (WebView Container) -->
+    <FrameLayout
+        android:id="@+id/webview_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/top_bar">
+
+        <WebView
+            android:id="@+id/web_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:focusable="true"
+            android:focusableInTouchMode="true" />
+
+        <!-- Virtual Pointer Cursor View Overlay -->
+        <com.antigravity.tvbrowser.navigation.PointerView
+            android:id="@+id/pointer_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clickable="false"
+            android:focusable="false" />
+
+    </FrameLayout>
+
+    <!-- Fullscreen Video Container (For YouTube / Web Video Playback) -->
+    <FrameLayout
+        android:id="@+id/fullscreen_video_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:visibility="gone" />
+
+</RelativeLayout>

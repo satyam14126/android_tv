@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BraveTV Shield Browser</string>
+    <string name="url_placeholder">Search or type web address...</string>
+    <string name="shield_status_active">Shield Active (%1$d Blocked)</string>
+    <string name="shield_status_off">Shield Off</string>
+    <string name="cache_manager">Cache &amp; Storage</string>
+    <string name="credential_vault">Password Vault</string>
+    <string name="bookmarks">Speed Dials</string>
+    <string name="clear_cache_title">Cache Management</string>
+    <string name="clear_cache_btn">Clear Web Cache</string>
+    <string name="clear_cookies_btn">Clear Cookies &amp; Data</string>
+    <string name="save_credential_title">Save Login Password?</string>
+    <string name="save_credential_msg">Would you like to securely encrypt and save login details for %1$s on this device?</string>
+    <string name="save">Save</string>
+    <string name="never">Never for this site</string>
+    <string name="cancel">Cancel</string>
+    <string name="virtual_cursor_mode">Virtual Pointer Mode</string>
+    <string name="dpad_focus_mode">D-Pad Focus Mode</string>
+</resources>
