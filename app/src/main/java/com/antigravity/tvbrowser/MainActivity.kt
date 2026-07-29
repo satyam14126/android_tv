@@ -243,7 +243,7 @@ class MainActivity : AppCompatActivity() {
         val btnClose = dialogView.findViewById<Button>(R.id.btn_close_cache)
 
         val sizeMb = cacheManager.calculateCacheSizeMB()
-        tvCacheInfo.text = "Estimated Cache Size: ${String.format("%.2f MB", sizeMb)}"
+        tvCacheInfo.text = "Estimated Cache Size: " + String.format("%.2f MB", sizeMb)
 
         val dialog = AlertDialog.Builder(this)
             .setView(dialogView)
