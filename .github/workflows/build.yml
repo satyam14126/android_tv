@@ -31,9 +31,10 @@ jobs:
           gradle-version: 8.4
 
       - name: Build Debug APK with Gradle
-        run: gradle assembleDebug --no-daemon
+        run: gradle assembleDebug --stacktrace --info
 
       - name: Upload Android TV APK Artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: BraveTV-Shield-Browser-APK
