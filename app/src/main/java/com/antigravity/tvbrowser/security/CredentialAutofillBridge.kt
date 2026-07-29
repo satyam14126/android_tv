@@ -23,7 +23,7 @@ class CredentialAutofillBridge(
     fun checkAutofillAvailable(domain: String): String {
         val cred = vaultManager.getCredential(domain)
         return if (cred != null) {
-            """{"user":"${cred.username}", "pass":"${cred.secretHash}"}"""
+            "{\"user\":\"" + cred.username + "\", \"pass\":\"" + cred.secretHash + "\"}"
         } else {
             ""
         }

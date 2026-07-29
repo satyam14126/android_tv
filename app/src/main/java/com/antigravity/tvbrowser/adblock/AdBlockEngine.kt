@@ -33,9 +33,9 @@ class AdBlockEngine private constructor(private val context: Context) {
                     if (trimmed.isNotEmpty() && !trimmed.startsWith("#")) {
                         val parts = trimmed.split("\\s+".toRegex())
                         if (parts.size >= 2) {
-                            blockedHosts.add(parts[1].lowercase())
+                            blockedHosts.add(parts[1].lowercase(java.util.Locale.ROOT))
                         } else if (parts.size == 1) {
-                            blockedHosts.add(parts[0].lowercase())
+                            blockedHosts.add(parts[0].lowercase(java.util.Locale.ROOT))
                         }
                     }
                 }
@@ -49,7 +49,7 @@ class AdBlockEngine private constructor(private val context: Context) {
     fun shouldBlock(request: WebResourceRequest): Boolean {
         if (!isEnabled) return false
         val uri = request.url ?: return false
-        val host = uri.host?.lowercase() ?: return false
+        val host = uri.host?.lowercase(java.util.Locale.ROOT) ?: return false
 
         return hostCache.getOrPut(host) {
             isHostBlocked(host) || isUrlPatternBlocked(uri.toString())
