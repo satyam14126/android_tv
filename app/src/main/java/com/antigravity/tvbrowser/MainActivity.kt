@@ -167,7 +167,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
-                super.onPageFinished(view, url?)
+                super.onPageFinished(view, url)
                 // Inject Cosmetic Ad Hiding Script & Autofill listener
                 webView?.let {
                     adBlockEngine.injectCosmeticHiding(it)
