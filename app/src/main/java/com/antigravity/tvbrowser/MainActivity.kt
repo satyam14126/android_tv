@@ -3,6 +3,7 @@ package com.antigravity.tvbrowser
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.os.Message
 import android.view.KeyEvent
@@ -36,6 +37,7 @@ import com.antigravity.tvbrowser.security.CredentialAutofillBridge
 import com.antigravity.tvbrowser.security.EncryptedVaultManager
 import com.antigravity.tvbrowser.ui.AddressBarController
 import com.antigravity.tvbrowser.ui.CustomWebChromeClient
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -217,6 +219,29 @@ class MainActivity : AppCompatActivity() {
                     return adBlockEngine.createEmptyResponse()
                 }
                 return super.shouldInterceptRequest(view, request)
+            }
+
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): Boolean {
+                val url = request?.url?.toString() ?: return super.shouldOverrideUrlLoading(view, request)
+
+                // Block ad redirects / link shorteners in the main frame
+                if (adBlockEngine.shouldBlockMainFrameNavigation(url)) {
+                    runOnUiThread { updateShieldCountDisplay() }
+                    return true
+                }
+
+                // Open cross-origin redirects (e.g. FMovies play links) in a new tab
+                val currentHost = view?.url?.let { Uri.parse(it).host }?.lowercase(Locale.ROOT)
+                val targetHost = Uri.parse(url).host?.lowercase(Locale.ROOT)
+                if (currentHost != null && targetHost != null && currentHost != targetHost) {
+                    runOnUiThread { newTab(url) }
+                    return true
+                }
+
+                return super.shouldOverrideUrlLoading(view, request)
             }
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {

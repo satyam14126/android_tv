@@ -86,11 +86,31 @@ class AdBlockEngine private constructor(private val context: Context) {
                lowerUrl.contains("/youtubei/v1/player/ad_") ||
                lowerUrl.contains("youtube.com/ads") ||
                (lowerUrl.contains("videoplayback") && lowerUrl.contains("ad_type=")) ||
+               // Ad-link / redirect services
+               lowerUrl.contains("linkvertise") ||
+               lowerUrl.contains("ouo.io/") ||
+               lowerUrl.contains("adf.ly/") ||
+               lowerUrl.contains("adfoc.us/") ||
+               lowerUrl.contains("shorte.st/") ||
+               lowerUrl.contains("bc.vc/") ||
+               lowerUrl.contains("gplinks.co/") ||
+               lowerUrl.contains("hyadrel.com") ||
+               lowerUrl.contains("acecliq.com") ||
+               lowerUrl.contains("toseepl.com") ||
+               lowerUrl.contains("pcsite.info") ||
+               lowerUrl.contains("vdlrd.xyz") ||
                // Generic ad endpoints
                lowerUrl.contains("/adserver/") ||
                lowerUrl.contains("/ads/click") ||
                lowerUrl.contains("googlesyndication.com/pagead") ||
                lowerUrl.contains("googleadservices.com/pagead")
+    }
+
+    fun shouldBlockMainFrameNavigation(url: String): Boolean {
+        if (!isEnabled) return false
+        val lowerUrl = url.lowercase(java.util.Locale.ROOT)
+        val host = Uri.parse(lowerUrl).host ?: return isUrlPatternBlocked(lowerUrl)
+        return isHostBlocked(host) || isUrlPatternBlocked(lowerUrl)
     }
 
     fun createEmptyResponse(): WebResourceResponse {
