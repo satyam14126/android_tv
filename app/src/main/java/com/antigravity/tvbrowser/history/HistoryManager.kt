@@ -16,7 +16,7 @@ class HistoryManager(private val context: Context) {
         val list = getAllHistory().toMutableList()
 
         val existingIndex = list.indexOfFirst { it.url.equals(url, ignoreCase = true) }
-        val entry = HistoryEntry(id = "$url_$now", title = title, url = url, timestamp = now)
+        val entry = HistoryEntry(id = "${url}_$now", title = title, url = url, timestamp = now)
         if (existingIndex >= 0) {
             list.removeAt(existingIndex)
         }

@@ -416,6 +416,11 @@ class MainActivity : AppCompatActivity() {
 
         val itemStrings = bookmarks.map { "${it.title} — ${it.url}" }
         val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, itemStrings)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
         lvItems.adapter = adapter
         lvItems.setOnItemClickListener { _, _, position, _ ->
             val bookmark = bookmarks[position]
@@ -429,10 +434,6 @@ class MainActivity : AppCompatActivity() {
             showBookmarksDialog()
             true
         }
-
-        val dialog = AlertDialog.Builder(this)
-            .setView(dialogView)
-            .create()
 
         btnClose.setOnClickListener { dialog.dismiss() }
         dialog.show()
