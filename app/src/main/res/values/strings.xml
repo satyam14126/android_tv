@@ -17,4 +17,22 @@
     <string name="cancel">Cancel</string>
     <string name="virtual_cursor_mode">Virtual Pointer Mode</string>
     <string name="dpad_focus_mode">D-Pad Focus Mode</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">History, Bookmarks &amp; More</string>
+    <string name="settings_history">Browsing History</string>
+    <string name="settings_save_bookmark">Save Current Page as Bookmark</string>
+    <string name="settings_bookmarks">My Bookmarks</string>
+
+    <string name="history_subtitle">Last visited pages on this TV</string>
+    <string name="clear_history_btn">Clear History</string>
+    <string name="empty_history">No browsing history yet</string>
+    <string name="history_cleared">History cleared!</string>
+
+    <string name="bookmarks_subtitle">Select a bookmark to open it</string>
+    <string name="empty_bookmarks">No bookmarks yet</string>
+    <string name="bookmark_saved">Bookmark saved!</string>
+    <string name="already_bookmarked">This page is already bookmarked</string>
+    <string name="bookmark_removed">Bookmark removed</string>
+    <string name="bookmark_save_failed">Could not save bookmark</string>
 </resources>

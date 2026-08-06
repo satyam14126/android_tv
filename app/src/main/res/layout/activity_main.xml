@@ -120,6 +120,16 @@
             android:contentDescription="Password Vault"
             android:src="@android:drawable/ic_lock_lock" />
 
+        <!-- Settings Button (History / Bookmarks) -->
+        <ImageButton
+            android:id="@+id/btn_settings"
+            style="@style/TVButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="Settings"
+            android:src="@android:drawable/ic_menu_manage" />
+
     </LinearLayout>
 
     <!-- Main Content Frame (WebView Container) -->

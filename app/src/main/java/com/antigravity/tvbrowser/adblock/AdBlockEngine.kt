@@ -79,7 +79,18 @@ class AdBlockEngine private constructor(private val context: Context) {
                lowerUrl.contains("/adservice/") ||
                lowerUrl.contains("doubleclick.net") ||
                lowerUrl.contains("/popads/") ||
-               lowerUrl.contains("googleads.g.doubleclick.net")
+               lowerUrl.contains("googleads.g.doubleclick.net") ||
+               // YouTube ad traffic
+               lowerUrl.contains("/api/stats/ads") ||
+               lowerUrl.contains("/get_midroll_info") ||
+               lowerUrl.contains("/youtubei/v1/player/ad_") ||
+               lowerUrl.contains("youtube.com/ads") ||
+               (lowerUrl.contains("videoplayback") && lowerUrl.contains("ad_type=")) ||
+               // Generic ad endpoints
+               lowerUrl.contains("/adserver/") ||
+               lowerUrl.contains("/ads/click") ||
+               lowerUrl.contains("googlesyndication.com/pagead") ||
+               lowerUrl.contains("googleadservices.com/pagead")
     }
 
     fun createEmptyResponse(): WebResourceResponse {
@@ -99,6 +110,21 @@ class AdBlockEngine private constructor(private val context: Context) {
             webView.evaluateJavascript(jsContent, null)
         } catch (e: Exception) {
             Log.e(TAG, "Cosmetic script injection failed", e)
+        }
+    }
+
+    fun injectSiteSpecificAdBlock(webView: WebView, url: String) {
+        if (!isEnabled) return
+        try {
+            val host = Uri.parse(url).host?.lowercase(java.util.Locale.ROOT) ?: return
+            if (host.contains("youtube.com")) {
+                val jsContent = context.assets.open("adblock/youtube_adblock.js")
+                    .bufferedReader()
+                    .use { it.readText() }
+                webView.evaluateJavascript(jsContent, null)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Site-specific adblock injection failed", e)
         }
     }
 

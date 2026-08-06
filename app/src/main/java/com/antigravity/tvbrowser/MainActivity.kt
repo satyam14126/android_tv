@@ -23,7 +23,9 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.antigravity.tvbrowser.adblock.AdBlockEngine
+import com.antigravity.tvbrowser.bookmark.BookmarkManager
 import com.antigravity.tvbrowser.cache.CacheManager
+import com.antigravity.tvbrowser.history.HistoryManager
 import com.antigravity.tvbrowser.navigation.PointerView
 import com.antigravity.tvbrowser.navigation.VirtualCursorController
 import com.antigravity.tvbrowser.security.CredentialAutofillBridge
@@ -39,6 +41,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adBlockEngine: AdBlockEngine
     private lateinit var cacheManager: CacheManager
     private lateinit var vaultManager: EncryptedVaultManager
+    private lateinit var bookmarkManager: BookmarkManager
+    private lateinit var historyManager: HistoryManager
     private lateinit var webChromeClient: CustomWebChromeClient
 
     private lateinit var etUrl: EditText
@@ -51,6 +55,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnModeToggle: ImageButton
     private lateinit var btnCache: ImageButton
     private lateinit var btnVault: ImageButton
+    private lateinit var btnSettings: ImageButton
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,6 +66,8 @@ class MainActivity : AppCompatActivity() {
         adBlockEngine = AdBlockEngine.getInstance(this)
         cacheManager = CacheManager(this)
         vaultManager = EncryptedVaultManager(this)
+        bookmarkManager = BookmarkManager(this)
+        historyManager = HistoryManager(this)
 
         initViews()
         setupWebView()
@@ -83,6 +90,7 @@ class MainActivity : AppCompatActivity() {
         btnModeToggle = findViewById(R.id.btn_mode_toggle)
         btnCache = findViewById(R.id.btn_cache)
         btnVault = findViewById(R.id.btn_vault)
+        btnSettings = findViewById(R.id.btn_settings)
 
         cursorController = VirtualCursorController(pointerView, webView)
 
@@ -105,6 +113,7 @@ class MainActivity : AppCompatActivity() {
         btnModeToggle.setOnClickListener { toggleCursorMode() }
         btnCache.setOnClickListener { showCacheManagerDialog() }
         btnVault.setOnClickListener { showVaultDialog() }
+        btnSettings.setOnClickListener { showSettingsDialog() }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -168,9 +177,15 @@ class MainActivity : AppCompatActivity() {
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                // Inject Cosmetic Ad Hiding Script & Autofill listener
+                // Record visit into persistent browsing history
+                url?.let { currentUrl ->
+                    val title = view?.title ?: currentUrl
+                    historyManager.recordVisit(title, currentUrl)
+                }
+                // Inject Cosmetic Ad Hiding Script, YouTube ad killer & Autofill listener
                 webView?.let {
                     adBlockEngine.injectCosmeticHiding(it)
+                    url?.let { u -> adBlockEngine.injectSiteSpecificAdBlock(it, u) }
                     it.evaluateJavascript(CredentialAutofillBridge.getAutofillInjectionScript(), null)
                 }
                 updateShieldCountDisplay()
@@ -303,6 +318,123 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnCancel.setOnClickListener { dialog.dismiss() }
+        dialog.show()
+    }
+
+    private fun showSettingsDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_settings, null)
+        val btnHistory = dialogView.findViewById<Button>(R.id.btn_settings_history)
+        val btnSaveBookmark = dialogView.findViewById<Button>(R.id.btn_settings_save_bookmark)
+        val btnBookmarks = dialogView.findViewById<Button>(R.id.btn_settings_bookmarks)
+        val btnClose = dialogView.findViewById<Button>(R.id.btn_close_settings)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        btnHistory.setOnClickListener {
+            dialog.dismiss()
+            showHistoryDialog()
+        }
+
+        btnSaveBookmark.setOnClickListener {
+            dialog.dismiss()
+            saveCurrentBookmark()
+        }
+
+        btnBookmarks.setOnClickListener {
+            dialog.dismiss()
+            showBookmarksDialog()
+        }
+
+        btnClose.setOnClickListener { dialog.dismiss() }
+        dialog.show()
+    }
+
+    private fun saveCurrentBookmark() {
+        val currentUrl = webView.url ?: etUrl.text.toString()
+        if (currentUrl.isBlank() || currentUrl == "about:blank") {
+            Toast.makeText(this, R.string.bookmark_save_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val title = webView.title ?: currentUrl
+        val saved = bookmarkManager.saveBookmark(title, currentUrl)
+        val message = if (saved) R.string.bookmark_saved else R.string.already_bookmarked
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showHistoryDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_history, null)
+        val lvItems = dialogView.findViewById<ListView>(R.id.lv_history_items)
+        val btnClear = dialogView.findViewById<Button>(R.id.btn_clear_history)
+        val btnClose = dialogView.findViewById<Button>(R.id.btn_close_history)
+
+        val history = historyManager.getAllHistory()
+        if (history.isEmpty()) {
+            Toast.makeText(this, R.string.empty_history, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val itemStrings = history.map { entry ->
+            val time = java.text.DateFormat.getDateTimeInstance(
+                java.text.DateFormat.SHORT,
+                java.text.DateFormat.SHORT
+            ).format(java.util.Date(entry.timestamp))
+            "${entry.title} — ${entry.url} ($time)"
+        }
+        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, itemStrings)
+        lvItems.adapter = adapter
+        lvItems.setOnItemClickListener { _, _, position, _ ->
+            val entry = history[position]
+            loadUrl(entry.url)
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        btnClear.setOnClickListener {
+            historyManager.clearHistory()
+            Toast.makeText(this, R.string.history_cleared, Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+
+        btnClose.setOnClickListener { dialog.dismiss() }
+        dialog.show()
+    }
+
+    private fun showBookmarksDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_bookmarks, null)
+        val lvItems = dialogView.findViewById<ListView>(R.id.lv_bookmark_items)
+        val btnClose = dialogView.findViewById<Button>(R.id.btn_close_bookmarks)
+
+        val bookmarks = bookmarkManager.getAllBookmarks()
+        if (bookmarks.isEmpty()) {
+            Toast.makeText(this, R.string.empty_bookmarks, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val itemStrings = bookmarks.map { "${it.title} — ${it.url}" }
+        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, itemStrings)
+        lvItems.adapter = adapter
+        lvItems.setOnItemClickListener { _, _, position, _ ->
+            val bookmark = bookmarks[position]
+            loadUrl(bookmark.url)
+        }
+        lvItems.setOnItemLongClickListener { _, _, position, _ ->
+            val bookmark = bookmarks[position]
+            bookmarkManager.deleteBookmark(bookmark.url)
+            Toast.makeText(this, R.string.bookmark_removed, Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+            showBookmarksDialog()
+            true
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        btnClose.setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 }

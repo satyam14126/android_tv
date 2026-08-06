@@ -13,3 +13,10 @@ data class SavedCredential(
     val username: String,
     val secretHash: String
 )
+
+data class HistoryEntry(
+    val id: String,
+    val title: String,
+    val url: String,
+    val timestamp: Long
+)
