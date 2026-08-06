@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -15,6 +16,8 @@ import android.webkit.WebViewClient
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -57,6 +60,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnVault: ImageButton
     private lateinit var btnSettings: ImageButton
 
+    private lateinit var webViewContainer: FrameLayout
+    private lateinit var tabStripScroll: HorizontalScrollView
+    private lateinit var tabStrip: LinearLayout
+
+    private val tabs = mutableListOf<WebView>()
+    private var activeTabIndex = 0
+    private var activeWebView: WebView? = null
+
+    companion object {
+        private const val DEFAULT_START_URL = "https://www.google.com"
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,7 +89,7 @@ class MainActivity : AppCompatActivity() {
         setupNavigation()
 
         // Load Default Start Page
-        loadUrl("https://www.google.com")
+        loadUrl(DEFAULT_START_URL)
     }
 
     private fun initViews() {
@@ -91,6 +106,9 @@ class MainActivity : AppCompatActivity() {
         btnCache = findViewById(R.id.btn_cache)
         btnVault = findViewById(R.id.btn_vault)
         btnSettings = findViewById(R.id.btn_settings)
+        webViewContainer = findViewById(R.id.webview_container)
+        tabStripScroll = findViewById(R.id.tab_strip_scroll)
+        tabStrip = findViewById(R.id.tab_strip)
 
         cursorController = VirtualCursorController(pointerView, webView)
 
@@ -99,15 +117,19 @@ class MainActivity : AppCompatActivity() {
             if (actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_DONE) {
                 val input = etUrl.text.toString()
                 loadUrl(AddressBarController.formatUrlOrSearch(input))
-                webView.requestFocus()
+                activeWebView?.requestFocus()
                 true
             } else false
         }
 
         // Button Click Handlers
-        btnBack.setOnClickListener { if (webView.canGoBack()) webView.goBack() }
-        btnForward.setOnClickListener { if (webView.canGoForward()) webView.goForward() }
-        btnRefresh.setOnClickListener { webView.reload() }
+        btnBack.setOnClickListener {
+            activeWebView?.takeIf { it.canGoBack() }?.goBack()
+        }
+        btnForward.setOnClickListener {
+            activeWebView?.takeIf { it.canGoForward() }?.goForward()
+        }
+        btnRefresh.setOnClickListener { activeWebView?.reload() }
 
         btnShieldToggle.setOnClickListener { toggleAdBlockShield() }
         btnModeToggle.setOnClickListener { toggleCursorMode() }
@@ -118,13 +140,41 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView() {
-        val settings = webView.settings
+        // Shared WebChromeClient for Fullscreen Video & Progress across all tabs
+        webChromeClient = CustomWebChromeClient(
+            findViewById(R.id.fullscreen_video_container),
+            findViewById(R.id.webview_container),
+            object : CustomWebChromeClient.WebChromeListener {
+                override fun onProgressUpdate(newProgress: Int) {}
+                override fun onTitleReceived(title: String?) {
+                    if (title != null && !etUrl.hasFocus()) {
+                        updateShieldCountDisplay()
+                    }
+                    updateTabChip(activeTabIndex)
+                }
+            }
+        )
+
+        // Base WebView from layout becomes tab #0
+        configureWebView(webView)
+        tabs.add(webView)
+        activeWebView = webView
+        webView.visibility = View.VISIBLE
+        rebuildTabStrip()
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun configureWebView(wv: WebView) {
+        val settings = wv.settings
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
         settings.useWideViewPort = true
         settings.loadWithOverviewMode = true
         settings.mediaPlaybackRequiresUserGesture = false
+
+        wv.isFocusable = true
+        wv.isFocusableInTouchMode = true
 
         cacheManager.configureCacheSettings(settings)
 
@@ -140,25 +190,12 @@ class MainActivity : AppCompatActivity() {
                 override fun onRequestAutofill(domain: String) {}
             }
         )
-        webView.addJavascriptInterface(autofillBridge, "AGYVault")
+        wv.addJavascriptInterface(autofillBridge, "AGYVault")
 
-        // Custom WebChromeClient for Fullscreen Video & Progress
-        webChromeClient = CustomWebChromeClient(
-            findViewById(R.id.fullscreen_video_container),
-            findViewById(R.id.webview_container),
-            object : CustomWebChromeClient.WebChromeListener {
-                override fun onProgressUpdate(newProgress: Int) {}
-                override fun onTitleReceived(title: String?) {
-                    if (title != null && !etUrl.hasFocus()) {
-                        updateShieldCountDisplay()
-                    }
-                }
-            }
-        )
-        webView.webChromeClient = webChromeClient
+        wv.webChromeClient = webChromeClient
 
         // Custom WebViewClient for Request Interception & Ad-blocking
-        webView.webViewClient = object : WebViewClient() {
+        wv.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(
                 view: WebView?,
                 request: WebResourceRequest?
@@ -172,7 +209,9 @@ class MainActivity : AppCompatActivity() {
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
-                url?.let { etUrl.setText(it) }
+                if (view == activeWebView) {
+                    url?.let { etUrl.setText(it) }
+                }
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
@@ -183,15 +222,135 @@ class MainActivity : AppCompatActivity() {
                     historyManager.recordVisit(title, currentUrl)
                 }
                 // Inject Cosmetic Ad Hiding Script, YouTube ad killer & Autofill listener
-                webView?.let {
+                view?.let {
                     adBlockEngine.injectCosmeticHiding(it)
                     url?.let { u -> adBlockEngine.injectSiteSpecificAdBlock(it, u) }
                     it.evaluateJavascript(CredentialAutofillBridge.getAutofillInjectionScript(), null)
                 }
+                view?.let { v -> updateTabChipForView(v) }
                 updateShieldCountDisplay()
             }
         }
     }
+
+    private fun createWebView(): WebView {
+        val newView = WebView(this)
+        configureWebView(newView)
+        val layoutParams = FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
+        newView.layoutParams = layoutParams
+        val insertIndex = webViewContainer.indexOfChild(pointerView)
+        webViewContainer.addView(newView, if (insertIndex >= 0) insertIndex else webViewContainer.childCount)
+        newView.visibility = View.GONE
+        return newView
+    }
+
+    private fun newTab(url: String? = null) {
+        val newView = createWebView()
+        tabs.add(newView)
+        activeTabIndex = tabs.size - 1
+        activeWebView = newView
+        newView.visibility = View.VISIBLE
+        activateCurrentTab()
+        newView.loadUrl(url ?: DEFAULT_START_URL)
+    }
+
+    private fun switchTab(index: Int) {
+        if (index < 0 || index >= tabs.size) return
+        if (index == activeTabIndex) return
+        activeTabIndex = index
+        activateCurrentTab()
+    }
+
+    private fun closeTab(index: Int) {
+        if (index < 0 || index >= tabs.size) return
+        if (tabs.size <= 1) {
+            Toast.makeText(this, R.string.cannot_close_last_tab, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val closedView = tabs.removeAt(index)
+        if (index < activeTabIndex) {
+            activeTabIndex -= 1
+        } else if (index == activeTabIndex) {
+            if (activeTabIndex >= tabs.size) activeTabIndex = tabs.size - 1
+        }
+
+        webViewContainer.removeView(closedView)
+        closedView.removeAllViews()
+        closedView.destroy()
+        activateCurrentTab()
+    }
+
+    private fun activateCurrentTab() {
+        if (tabs.isEmpty()) return
+        tabs.forEachIndexed { i, v -> v.visibility = if (i == activeTabIndex) View.VISIBLE else View.GONE }
+        val current = tabs[activeTabIndex]
+        activeWebView = current
+        current.requestFocus()
+        cursorController.rebind(current)
+        current.url?.let { etUrl.setText(it) }
+        rebuildTabStrip()
+    }
+
+    private fun rebuildTabStrip() {
+        tabStrip.removeAllViews()
+
+        // New Tab button
+        val addButton = ImageButton(this)
+        addButton.setImageResource(android.R.drawable.ic_menu_add)
+        addButton.contentDescription = getString(R.string.new_tab)
+        addButton.isFocusable = true
+        addButton.isClickable = true
+        addButton.setBackgroundResource(R.drawable.bg_tv_button)
+        addButton.setOnClickListener { newTab() }
+        val addLp = LinearLayout.LayoutParams(dp(48), dp(44))
+        addLp.rightMargin = dp(10)
+        tabStrip.addView(addButton, addLp)
+
+        // Tab chips
+        tabs.forEachIndexed { index, view ->
+            tabStrip.addView(buildTabChip(index, view))
+        }
+
+        // Scroll to the active tab
+        tabStripScroll.post {
+            tabStripScroll.smoothScrollTo(dp(210) * activeTabIndex, 0)
+        }
+    }
+
+    private fun buildTabChip(index: Int, view: WebView): View {
+        val chip = layoutInflater.inflate(R.layout.item_tab, tabStrip, false)
+        val tvTitle = chip.findViewById<TextView>(R.id.tab_title)
+        val btnClose = chip.findViewById<ImageButton>(R.id.tab_close)
+
+        tvTitle.text = view.title?.takeIf { it.isNotBlank() } ?: getString(R.string.tab_new_title)
+        chip.isSelected = index == activeTabIndex
+        chip.isFocusable = true
+        chip.isClickable = true
+        chip.setOnClickListener { switchTab(index) }
+        btnClose.setOnClickListener { closeTab(index) }
+        return chip
+    }
+
+    private fun updateTabChip(index: Int) {
+        if (index < 0 || index >= tabs.size) return
+        val child = tabStrip.getChildAt(index + 1) ?: return
+        val tvTitle = child.findViewById<TextView>(R.id.tab_title) ?: return
+        val title = tabs[index].title?.takeIf { it.isNotBlank() } ?: getString(R.string.tab_new_title)
+        if (tvTitle.text.toString() != title) {
+            tvTitle.text = title
+        }
+    }
+
+    private fun updateTabChipForView(view: WebView) {
+        val index = tabs.indexOf(view)
+        if (index >= 0) updateTabChip(index)
+    }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun setupNavigation() {
         // Default to TV Virtual Pointer Mode
@@ -199,7 +358,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadUrl(url: String) {
-        webView.loadUrl(url)
+        activeWebView?.loadUrl(url)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -210,8 +369,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // If top bar or EditText has focus, pass key to standard view focus engine
-        if (etUrl.hasFocus() || btnBack.hasFocus() || btnCache.hasFocus()) {
+        // If top bar, tab strip, or EditText has focus, pass key to standard focus engine
+        if (etUrl.hasFocus() || btnBack.hasFocus() || btnForward.hasFocus() ||
+            btnRefresh.hasFocus() || btnModeToggle.hasFocus() || btnCache.hasFocus() ||
+            btnVault.hasFocus() || btnSettings.hasFocus() || tabStrip.hasFocus()
+        ) {
             return super.dispatchKeyEvent(event)
         }
 
@@ -224,11 +386,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack()
+        val current = activeWebView
+        if (current != null && current.canGoBack()) {
+            current.goBack()
         } else {
             super.onBackPressed()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        tabs.forEach { tab ->
+            webViewContainer.removeView(tab)
+            tab.removeAllViews()
+            tab.destroy()
+        }
+        tabs.clear()
     }
 
     private fun updateShieldCountDisplay() {
@@ -241,7 +414,7 @@ class MainActivity : AppCompatActivity() {
         val status = if (adBlockEngine.isEnabled) "Shield Activated" else "Shield Disabled"
         Toast.makeText(this, status, Toast.LENGTH_SHORT).show()
         updateShieldCountDisplay()
-        webView.reload()
+        activeWebView?.reload()
     }
 
     private fun toggleCursorMode() {
@@ -265,7 +438,7 @@ class MainActivity : AppCompatActivity() {
             .create()
 
         btnClearCache.setOnClickListener {
-            cacheManager.clearWebCache(webView)
+            tabs.forEach { cacheManager.clearWebCache(it) }
             cacheManager.clearWebStorage()
             Toast.makeText(this, "Cache & Storage Cleared!", Toast.LENGTH_SHORT).show()
             dialog.dismiss()
@@ -352,12 +525,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveCurrentBookmark() {
-        val currentUrl = webView.url ?: etUrl.text.toString()
+        val currentWebView = activeWebView
+        val currentUrl = currentWebView?.url ?: etUrl.text.toString()
         if (currentUrl.isBlank() || currentUrl == "about:blank") {
             Toast.makeText(this, R.string.bookmark_save_failed, Toast.LENGTH_SHORT).show()
             return
         }
-        val title = webView.title ?: currentUrl
+        val title = currentWebView?.title ?: currentUrl
         val saved = bookmarkManager.saveBookmark(title, currentUrl)
         val message = if (saved) R.string.bookmark_saved else R.string.already_bookmarked
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()

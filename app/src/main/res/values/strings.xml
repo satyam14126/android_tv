@@ -35,4 +35,9 @@
     <string name="already_bookmarked">This page is already bookmarked</string>
     <string name="bookmark_removed">Bookmark removed</string>
     <string name="bookmark_save_failed">Could not save bookmark</string>
+
+    <string name="new_tab">New Tab</string>
+    <string name="close_tab">Close Tab</string>
+    <string name="cannot_close_last_tab">You cannot close the last tab</string>
+    <string name="tab_new_title">New Tab</string>
 </resources>

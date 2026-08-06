@@ -7,10 +7,16 @@ import android.webkit.WebView
 
 class VirtualCursorController(
     private val pointerView: PointerView,
-    private val webView: WebView
+    webView: WebView
 ) {
 
-    private val focusSnapper = MagneticFocusSnapper(webView)
+    private var webView: WebView = webView
+    private var focusSnapper = MagneticFocusSnapper(webView)
+
+    fun rebind(newWebView: WebView) {
+        webView = newWebView
+        focusSnapper = MagneticFocusSnapper(newWebView)
+    }
 
     var isCursorModeEnabled: Boolean = true
         set(value) {

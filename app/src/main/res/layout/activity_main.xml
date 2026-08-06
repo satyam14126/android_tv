@@ -132,12 +132,32 @@
 
     </LinearLayout>
 
+    <!-- Tab Strip (Multi-Tab Bar) -->
+    <HorizontalScrollView
+        android:id="@+id/tab_strip_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_below="@id/top_bar"
+        android:background="@color/bg_topbar"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/tab_strip"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp" />
+
+    </HorizontalScrollView>
+
     <!-- Main Content Frame (WebView Container) -->
     <FrameLayout
         android:id="@+id/webview_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/top_bar">
+        android:layout_below="@id/tab_strip_scroll">
 
         <WebView
             android:id="@+id/web_view"
