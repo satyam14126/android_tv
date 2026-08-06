@@ -1,5 +1,6 @@
 package com.antigravity.tvbrowser.ui
 
+import android.os.Message
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebChromeClient
@@ -14,6 +15,8 @@ class CustomWebChromeClient(
     interface WebChromeListener {
         fun onProgressUpdate(newProgress: Int)
         fun onTitleReceived(title: String?)
+        fun onCreateWindow(resultMsg: Message): Boolean
+        fun onCloseWindow(window: WebView?)
     }
 
     private var customView: View? = null
@@ -27,6 +30,24 @@ class CustomWebChromeClient(
     override fun onReceivedTitle(view: WebView?, title: String?) {
         super.onReceivedTitle(view, title)
         listener.onTitleReceived(title)
+    }
+
+    override fun onCreateWindow(
+        view: WebView?,
+        isDialog: Boolean,
+        isUserGesture: Boolean,
+        resultMsg: Message?
+    ): Boolean {
+        return if (resultMsg != null) {
+            listener.onCreateWindow(resultMsg)
+        } else {
+            false
+        }
+    }
+
+    override fun onCloseWindow(window: WebView?) {
+        super.onCloseWindow(window)
+        listener.onCloseWindow(window)
     }
 
     override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {

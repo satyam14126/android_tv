@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.os.Message
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -152,6 +153,15 @@ class MainActivity : AppCompatActivity() {
                     }
                     updateTabChip(activeTabIndex)
                 }
+                override fun onCreateWindow(resultMsg: Message): Boolean {
+                    return openPopupInNewTab(resultMsg)
+                }
+                override fun onCloseWindow(window: WebView?) {
+                    val index = tabs.indexOf(window)
+                    if (index >= 0) {
+                        closeTab(index)
+                    }
+                }
             }
         )
 
@@ -172,6 +182,8 @@ class MainActivity : AppCompatActivity() {
         settings.useWideViewPort = true
         settings.loadWithOverviewMode = true
         settings.mediaPlaybackRequiresUserGesture = false
+        settings.javaScriptCanOpenWindowsAutomatically = true
+        settings.setSupportMultipleWindows(true)
 
         wv.isFocusable = true
         wv.isFocusableInTouchMode = true
@@ -255,6 +267,19 @@ class MainActivity : AppCompatActivity() {
         newView.visibility = View.VISIBLE
         activateCurrentTab()
         newView.loadUrl(url ?: DEFAULT_START_URL)
+    }
+
+    private fun openPopupInNewTab(resultMsg: Message): Boolean {
+        val transport = resultMsg.obj as? WebView.WebViewTransport ?: return false
+        val newView = createWebView()
+        tabs.add(newView)
+        activeTabIndex = tabs.size - 1
+        activeWebView = newView
+        newView.visibility = View.VISIBLE
+        activateCurrentTab()
+        transport.webView = newView
+        resultMsg.sendToTarget()
+        return true
     }
 
     private fun switchTab(index: Int) {
